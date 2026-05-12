@@ -1,41 +1,51 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import PortalLayout from "../components/PortalLayout";
 import StatusBadge from "../components/StatusBadge";
+import { formatXAF } from "../lib/format";
+import { getStoredUserRole } from "../hooks/useAuthToken";
+import { listBookings } from "../services/bookingsApi";
 
-const bookings = [
-  {
-    id: 1,
-    title: "The Horizon Suite",
-    location: "Bonanjo, Douala",
-    checkIn: "Oct 24, 2024",
-    checkOut: "Oct 28, 2024",
-    amount: "245,000 FCFA",
-    status: "Completed",
-    image:
-      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    id: 2,
-    title: "Akwa Terrace Loft",
-    location: "Akwa, Douala",
-    checkIn: "Nov 12, 2024",
-    checkOut: "Nov 15, 2024",
-    amount: "180,000 FCFA",
-    status: "Upcoming",
-    image:
-      "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
-    id: 3,
-    title: "Modern City Apartment",
-    location: "Bali, Douala",
-    checkIn: "Sep 08, 2024",
-    checkOut: "Sep 11, 2024",
-    amount: "160,000 FCFA",
-    status: "Cancelled",
-    image:
-      "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80",
-  },
-];
+const fallbackImage =
+  "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80";
+
+function formatDate(date) {
+  if (!date) return "-";
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(date));
+}
+
+function formatStatus(status) {
+  if (!status) return "Pending";
+
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function normalizeBooking(booking) {
+  const property = booking.property || {};
+  const images = property.images || [];
+  const image =
+    property.image ||
+    property.image_url ||
+    images[0]?.url ||
+    images[0] ||
+    fallbackImage;
+
+  return {
+    id: booking.id,
+    title: property.title || "Reserved apartment",
+    location: property.address || property.neighborhood || "Douala",
+    checkIn: formatDate(booking.check_in),
+    checkOut: formatDate(booking.check_out),
+    amount: formatXAF(booking.total_amount),
+    status: formatStatus(booking.status),
+    image,
+  };
+}
 
 function BookingInfo({ label, value }) {
   return (
@@ -87,9 +97,12 @@ function BookingCard({ booking }) {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <button className="rounded-xl bg-sky-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-800">
+            <Link
+              to={`/reservations/${booking.id}`}
+              className="rounded-xl bg-sky-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-800"
+            >
               View Details
-            </button>
+            </Link>
 
             <button className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
               Download Receipt
@@ -108,6 +121,31 @@ function BookingCard({ booking }) {
 }
 
 export default function Reservations() {
+  const [bookings, setBookings] = useState([]);
+  const [isLoadingBookings, setIsLoadingBookings] = useState(false);
+  const [bookingsError, setBookingsError] = useState("");
+  const role = getStoredUserRole();
+  const isAdmin = role === "admin";
+
+  useEffect(() => {
+    const getBookings = async () => {
+      setIsLoadingBookings(true);
+      setBookingsError("");
+
+      try {
+        const data = await listBookings({ page: 1, per_page: 20 });
+        setBookings(data.map(normalizeBooking));
+      } catch (error) {
+        console.error(error);
+        setBookingsError(error.message);
+      } finally {
+        setIsLoadingBookings(false);
+      }
+    };
+
+    getBookings();
+  }, []);
+
   return (
     <PortalLayout active="history">
       <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
@@ -117,10 +155,12 @@ export default function Reservations() {
               Reservations
             </p>
             <h1 className="mt-3 text-3xl font-semibold text-slate-900 md:text-4xl">
-              Booking history
+              {isAdmin ? "All booking history" : "Booking history"}
             </h1>
             <p className="mt-3 text-slate-600">
-              View your past, upcoming, and cancelled reservations in one place.
+              {isAdmin
+                ? "View all guest reservations from the admin booking API."
+                : "View your past, upcoming, and cancelled reservations in one place."}
             </p>
           </div>
 
@@ -129,11 +169,35 @@ export default function Reservations() {
           </button>
         </div>
 
-        <div className="mt-8 space-y-5">
-          {bookings.map((booking) => (
-            <BookingCard key={booking.id} booking={booking} />
-          ))}
-        </div>
+        {isLoadingBookings && (
+          <p className="mt-8 text-slate-600">Loading bookings...</p>
+        )}
+
+        {bookingsError && (
+          <p className="mt-8 rounded-2xl bg-red-50 p-4 text-sm text-red-600">
+            {bookingsError}
+          </p>
+        )}
+
+        {!isLoadingBookings && !bookingsError && bookings.length === 0 && (
+          <div className="mt-8 rounded-[1.5rem] border border-slate-200 bg-[#F7F8F0] p-8 text-center">
+            <h2 className="text-2xl font-semibold text-slate-900">
+              No bookings yet
+            </h2>
+            <p className="mt-3 text-slate-600">
+              Your real booking history will appear here after you complete a
+              reservation.
+            </p>
+          </div>
+        )}
+
+        {!isLoadingBookings && !bookingsError && bookings.length > 0 && (
+          <div className="mt-8 space-y-5">
+            {bookings.map((booking) => (
+              <BookingCard key={booking.id} booking={booking} />
+            ))}
+          </div>
+        )}
       </div>
     </PortalLayout>
   );

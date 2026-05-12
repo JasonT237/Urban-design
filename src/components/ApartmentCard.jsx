@@ -1,8 +1,11 @@
 import { useNavigate } from "react-router-dom";
+import { formatAmenityLabel } from "../lib/apartmentFilters";
 import { formatXAF } from "../lib/format";
+
 
 export default function ApartmentCard({ apartment }) {
   const navigate = useNavigate();
+
 
   return (
     <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
@@ -54,6 +57,14 @@ export default function ApartmentCard({ apartment }) {
               {apartment.category}
             </span>
           )}
+          {(apartment.amenities || []).slice(0, 3).map((amenity) => (
+            <span
+              key={amenity}
+              className="rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-800"
+            >
+              {formatAmenityLabel(amenity)}
+            </span>
+          ))}
         </div>
 
         <div className="mt-6 flex items-center justify-between gap-4">

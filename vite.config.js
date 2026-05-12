@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api/v1": {
-        target: "http://sanaps.mooo.com",
+        target: "https://sanaps.mooo.com",
         changeOrigin: true,
         secure: false,
       },

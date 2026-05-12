@@ -9,18 +9,23 @@ import ReservationPanel from "../components/apartment-details/ReservationPanel";
 import ReviewsSection from "../components/apartment-details/ReviewsSection";
 import NotFound from "../components/NotFound";
 import { amenities, reviews } from "../data/apartmentDetailsContent";
-import { useApartments } from "../hooks/useApartments";
+import { useApartmentResource } from "../hooks/useApartmentResource";
 
 export default function ApartmentDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getApartmentById } = useApartments();
-
+  const { apartment, isLoading } = useApartmentResource(id);
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState("1");
 
-  const apartment = getApartmentById(id);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F7F8F0] px-6 py-16 text-center text-slate-600">
+        Loading apartment...
+      </div>
+    );
+  }
 
   if (!apartment) {
     return <NotFound />;

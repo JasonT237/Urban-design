@@ -1,12 +1,6 @@
-import { apartments } from "../data/apartments";
-
 export function formatXAF(amount) {
   if (typeof amount !== "number" || Number.isNaN(amount)) return "0 XAF";
   return `${amount.toLocaleString()} XAF`;
-}
-
-export function getApartmentById(id) {
-  return apartments.find((apt) => apt.id === Number(id));
 }
 
 export function calculateNights(checkIn, checkOut) {

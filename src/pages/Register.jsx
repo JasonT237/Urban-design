@@ -1,61 +1,35 @@
-import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
-
-function splitFullName(fullName) {
-  const parts = fullName.trim().split(/\s+/);
-  const firstName = parts[0] || "";
-  const lastName = parts.slice(1).join(" ");
-
-  return {
-    first_name: firstName,
-    last_name: lastName,
-  };
-}
+import { useState } from "react";
+import AuthTextField from "../components/auth/AuthTextField";
+import PasswordField from "../components/auth/PasswordField";
+import { registerUser } from "../services/authApi";
 
 export default function Register() {
   const navigate = useNavigate();
-  const { register } = useAuth();
-
-  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [first_name, setFirstName] = useState("");
+  const [last_name, setLastName] = useState("");
+  const [registerError, setRegisterError] = useState("");
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setError("");
-
-    const name = splitFullName(fullName);
-
-    if (!name.first_name || !name.last_name) {
-      setError("Please enter both first name and last name.");
-      return;
-    }
-
-    if (!acceptedTerms) {
-      setError("Please accept the terms before creating an account.");
-      return;
-    }
-
-    setSubmitting(true);
+  const handleRegister = async () => {
+    setRegisterError("");
 
     try {
-      await register({
-        email: email.trim() || undefined,
-        phone: phone.trim() || undefined,
+      const registerBody = {
+        email,
+        phone,
         password,
-        ...name,
-      });
+        first_name,
+        last_name,
+      };
 
-      navigate("/dashboard");
-    } catch (submitError) {
-      setError(submitError.message);
-    } finally {
-      setSubmitting(false);
+      await registerUser(registerBody);
+      navigate("/login");
+    } catch (error) {
+      console.error(error);
+      setRegisterError(error.message || "Could not create your account.");
     }
   };
 
@@ -106,98 +80,56 @@ export default function Register() {
                 Enter your details to start your journey with us.
               </p>
 
-              <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(event) => setFullName(event.target.value)}
-                    placeholder="John Doe"
-                    required
-                    className="w-full rounded-2xl border border-[#E7E8DE] bg-[#F7F8F0] px-4 py-4 text-sm text-slate-800 outline-none transition focus:border-sky-200"
-                  />
-                </div>
+              <form className="mt-8 space-y-5">
+                <AuthTextField
+                  label="First Name"
+                  placeholder="John"
+                  value={first_name}
+                  onChange={setFirstName}
+                />
+                <AuthTextField
+                  label="Last Name"
+                  placeholder="Doe"
+                  value={last_name}
+                  onChange={setLastName}
+                />
+                <AuthTextField
+                  label="Email Address"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={setEmail}
+                />
+                <AuthTextField
+                  label="Phone Number"
+                  placeholder="+237670000000"
+                  value={phone}
+                  onChange={setPhone}
+                />
 
                 <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="name@example.com"
-                    required
-                    className="w-full rounded-2xl border border-[#E7E8DE] bg-[#F7F8F0] px-4 py-4 text-sm text-slate-800 outline-none transition focus:border-sky-200"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    placeholder="+237670000000"
-                    className="w-full rounded-2xl border border-[#E7E8DE] bg-[#F7F8F0] px-4 py-4 text-sm text-slate-800 outline-none transition focus:border-sky-200"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                  <PasswordField
+                    id="register-password"
                     placeholder="Create a password"
-                    required
-                    minLength={8}
-                    className="w-full rounded-2xl border border-[#E7E8DE] bg-[#F7F8F0] px-4 py-4 text-sm text-slate-800 outline-none transition focus:border-sky-200"
+                    value={password}
+                    onChange={setPassword}
                   />
                 </div>
-
-                <label className="flex items-start gap-3 text-sm text-slate-500">
-                  <input
-                    type="checkbox"
-                    checked={acceptedTerms}
-                    onChange={(event) => setAcceptedTerms(event.target.checked)}
-                    className="mt-1 rounded"
-                  />
-                  <span>
-                    I agree to the{" "}
-                    <span className="font-medium text-sky-900">
-                      Terms of Service
-                    </span>{" "}
-                    and{" "}
-                    <span className="font-medium text-sky-900">
-                      Privacy Policy
-                    </span>
-                    .
-                  </span>
-                </label>
-
-                {error && (
-                  <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
-                    {error}
-                  </p>
-                )}
 
                 <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full rounded-2xl bg-sky-900 px-5 py-4 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  type="button"
+                  onClick={handleRegister}
+                  className="w-full rounded-2xl bg-sky-900 px-5 py-4 text-sm font-semibold text-white transition hover:bg-sky-800"
                 >
-                  {submitting ? "Creating account..." : "Create Account"}
+                  Create Account
                 </button>
               </form>
 
+              {registerError && (
+                <p className="mt-4 text-center text-sm text-red-600">
+                  {registerError}
+                </p>
+              )}
               <p className="mt-8 text-center text-sm text-slate-500">
                 Already have an account?{" "}
                 <Link

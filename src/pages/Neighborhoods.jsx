@@ -2,42 +2,136 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Hero from "../components/Hero";
 import ApartmentCard from "../components/ApartmentCard";
+import FilterChipGroup from "../components/FilterChipGroup";
 import { useApartments } from "../hooks/useApartments";
+import { useProperties } from "../hooks/useProperties";
+import {
+  filterApartmentList,
+  formatAmenityLabel,
+  getApartmentAmenities,
+  getApartmentCategories,
+  getApartmentNeighborhoods,
+} from "../lib/apartmentFilters";
+import { formatXAF } from "../lib/format";
 
 export default function Neighborhoods() {
   const [searchParams] = useSearchParams();
-  const { filterApartments } = useApartments();
+  const { apartments: staticApartments } = useApartments();
+  const {
+    properties: apiApartments,
+    isLoading: isLoadingProperties,
+    error: propertiesError,
+  } = useProperties({ page: 1, per_page: 20 });
 
   const [searchLocation, setSearchLocation] = useState(
     () => searchParams.get("location") || "",
+  );
+  const [selectedArea, setSelectedArea] = useState(
+    () => searchParams.get("area") || "",
   );
   const [guestFilter, setGuestFilter] = useState(
     () => searchParams.get("guests") || "All",
   );
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedAmenity, setSelectedAmenity] = useState(
+    () => searchParams.get("amenity") || "All",
+  );
 
-  const categories = ["All", "Luxury", "Family", "Executive"];
-
+  const baseApartments =
+    apiApartments.length > 0 ? apiApartments : staticApartments;
+  const categories = useMemo(
+    () => getApartmentCategories(baseApartments),
+    [baseApartments],
+  );
+  const availableNeighborhoods = useMemo(
+    () => getApartmentNeighborhoods(baseApartments),
+    [baseApartments],
+  );
+  const amenities = useMemo(
+    () => ["All", ...getApartmentAmenities(baseApartments)],
+    [baseApartments],
+  );
+  const activeCategory = categories.includes(selectedCategory)
+    ? selectedCategory
+    : "All";
+  const activeAmenity = amenities.includes(selectedAmenity)
+    ? selectedAmenity
+    : "All";
   const filteredApartments = useMemo(() => {
-    return filterApartments({
-      location: searchLocation,
+    return filterApartmentList(baseApartments, {
+      search: searchLocation,
+      area: selectedArea,
       guests: guestFilter,
-      category: selectedCategory,
+      category: activeCategory,
+      amenity: activeAmenity,
     });
-  }, [filterApartments, searchLocation, guestFilter, selectedCategory]);
+  }, [
+    activeAmenity,
+    activeCategory,
+    baseApartments,
+    searchLocation,
+    selectedArea,
+    guestFilter,
+  ]);
+  const heroApartment = filteredApartments[0];
+  const lowestPrice = filteredApartments.reduce((lowest, apartment) => {
+    if (!apartment.price) {
+      return lowest;
+    }
+
+    return lowest === 0 ? apartment.price : Math.min(lowest, apartment.price);
+  }, 0);
+  const neighborhoods = getApartmentNeighborhoods(filteredApartments);
+  const activeNeighborhood = availableNeighborhoods.find(
+    (neighborhood) =>
+      neighborhood.toLowerCase() === selectedArea.trim().toLowerCase(),
+  );
+  const heroTitle = isLoadingProperties
+    ? "Loading apartments from the backend."
+    : `${filteredApartments.length} apartment${
+        filteredApartments.length !== 1 ? "s" : ""
+      } ready for your stay in Douala.`;
+  const heroDescription =
+    neighborhoods.length > 0
+      ? `Browse stays in ${neighborhoods.slice(0, 3).join(", ")}${
+          neighborhoods.length > 3 ? ", and more" : ""
+        }, with live prices, guest capacity, and apartment details coming from your backend.`
+      : "Browse curated apartments for business trips, city escapes, and longer stays with comfort, convenience, and neighborhood quality.";
+  const heroStats = [
+    {
+      label: "Available stays",
+      value: isLoadingProperties ? "..." : filteredApartments.length,
+    },
+    {
+      label: "Starting from",
+      value: lowestPrice ? formatXAF(lowestPrice) : "-",
+    },
+    {
+      label: "Neighborhoods",
+      value: neighborhoods.length || "-",
+    },
+  ];
 
   const resetFilters = () => {
     setSearchLocation("");
+    setSelectedArea("");
     setGuestFilter("All");
     setSelectedCategory("All");
+    setSelectedAmenity("All");
+  };
+
+  const selectArea = (area) => {
+    setSelectedArea(area);
   };
 
   return (
     <div className="min-h-screen bg-[#F7F8F0] text-slate-900">
       <Hero
         tag="Neighborhoods"
-        title="Find the right stay in Douala’s most attractive neighborhoods."
-        description="Browse curated apartments for business trips, city escapes, and longer stays with comfort, convenience, and neighborhood quality."
+        title={heroTitle}
+        description={heroDescription}
+        stats={heroStats}
+        featuredApartment={heroApartment}
         locationLabel="Location or apartment"
         locationPlaceholder="Search by title or area"
         location={searchLocation}
@@ -48,9 +142,8 @@ export default function Neighborhoods() {
         onAction={resetFilters}
       />
 
-      {/* Category chips + results */}
       <section className="mx-auto max-w-7xl px-4 py-8 md:px-8 lg:px-10">
-        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-6">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-800">
               Available stays
@@ -59,30 +152,48 @@ export default function Neighborhoods() {
               Curated apartments
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              {filteredApartments.length} apartment
-              {filteredApartments.length !== 1 ? "s" : ""} found
+              {isLoadingProperties
+                ? "Loading apartments..."
+                : `${filteredApartments.length} apartment${
+                    filteredApartments.length !== 1 ? "s" : ""
+                  } found`}
             </p>
+            {propertiesError && (
+              <p className="mt-2 text-sm text-amber-700">{propertiesError}</p>
+            )}
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                  selectedCategory === category
-                    ? "bg-sky-900 text-white"
-                    : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-                }`}
-              >
-                {category}
-              </button>
-            ))}
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+            <FilterChipGroup
+              label="Neighborhood"
+              options={["", ...availableNeighborhoods]}
+              selectedOption={activeNeighborhood || ""}
+              onSelect={selectArea}
+              getOptionLabel={(option) => option || "All neighborhoods"}
+            />
+
+            <FilterChipGroup
+              label="Category"
+              options={categories}
+              selectedOption={activeCategory}
+              onSelect={setSelectedCategory}
+            />
           </div>
+
+          {amenities.length > 1 && (
+            <FilterChipGroup
+              label="Amenities"
+              options={amenities}
+              selectedOption={activeAmenity}
+              onSelect={setSelectedAmenity}
+              getOptionLabel={(amenity) =>
+                amenity === "All" ? "All amenities" : formatAmenityLabel(amenity)
+              }
+            />
+          )}
         </div>
       </section>
 
-      {/* Listings */}
       <section className="mx-auto max-w-7xl px-4 pb-14 md:px-8 lg:px-10">
         {filteredApartments.length === 0 ? (
           <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-sm">
@@ -102,7 +213,6 @@ export default function Neighborhoods() {
         )}
       </section>
 
-      {/* Bottom info strip */}
       <section className="border-t border-[#E7E8DE]">
         <div className="mx-auto max-w-7xl px-4 py-10 md:px-8 lg:px-10">
           <div className="grid gap-5 md:grid-cols-3">

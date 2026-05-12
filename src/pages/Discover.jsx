@@ -46,7 +46,7 @@ export default function Discover() {
 
       <NeighborhoodSpotlight
         neighborhoods={neighborhoods}
-        onSelect={(place) => openApartments({ location: place })}
+        onSelect={(place) => openApartments({ area: place })}
       />
 
       <SiteFooter />

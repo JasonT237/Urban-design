@@ -1,14 +1,37 @@
+import { useRef } from "react";
 import PersonalInfoPanel from "../components/profile/PersonalInfoPanel";
 import ProfileSummary from "../components/profile/ProfileSummary";
-import SettingsPanel from "../components/profile/SettingsPanel";
 import {
-  languageOptions,
-  notificationSettings,
-  profileFields,
-  securitySettings,
-} from "../data/profileContent";
+  NotificationsPanel,
+  SecuritySettingsPanel,
+} from "../components/profile/SettingsPanel";
+import { useProfile } from "../hooks/useProfile";
 
 export default function Profile() {
+  const profileFormRef = useRef(null);
+  const {
+    user,
+    notifications,
+    twoFactorSetup,
+    isLoading,
+    isSaving,
+    isChangingPassword,
+    isStartingTwoFactor,
+    error,
+    successMessage,
+    saveProfile,
+    changePassword,
+    startTwoFactorSetup,
+    confirmTwoFactorSetup,
+  } = useProfile();
+
+  const scrollToProfileForm = () => {
+    profileFormRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[#F7F8F0] px-4 py-8 md:px-8 lg:px-12">
       <div className="mx-auto max-w-7xl">
@@ -21,21 +44,46 @@ export default function Profile() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
-          <ProfileSummary />
-
-          <div className="space-y-6">
-            <PersonalInfoPanel
-              fields={profileFields}
-              languageOptions={languageOptions}
-            />
-            <SettingsPanel title="Security Settings" settings={securitySettings} />
-            <SettingsPanel
-              title="Notification Settings"
-              settings={notificationSettings}
-            />
+        {isLoading ? (
+          <div className="rounded-[2rem] border border-[#E7E8DE] bg-white p-8 text-slate-600 shadow-sm">
+            Loading your profile...
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+            <ProfileSummary user={user} onEditProfile={scrollToProfileForm} />
+
+            <div className="space-y-6" ref={profileFormRef}>
+              {(error || successMessage) && (
+                <div
+                  className={`rounded-2xl border px-5 py-4 text-sm ${
+                    error
+                      ? "border-red-200 bg-red-50 text-red-700"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  }`}
+                >
+                  {error || successMessage}
+                </div>
+              )}
+
+              <PersonalInfoPanel
+                isSaving={isSaving}
+                key={user?.id}
+                onSave={saveProfile}
+                user={user}
+              />
+              <SecuritySettingsPanel
+                isChangingPassword={isChangingPassword}
+                isStartingTwoFactor={isStartingTwoFactor}
+                onChangePassword={changePassword}
+                onConfirmTwoFactor={confirmTwoFactorSetup}
+                onStartTwoFactor={startTwoFactorSetup}
+                twoFactorSetup={twoFactorSetup}
+                user={user}
+              />
+              <NotificationsPanel notifications={notifications} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

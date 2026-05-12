@@ -1,35 +1,50 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import AuthTextField from "../components/auth/AuthTextField";
+import PasswordField from "../components/auth/PasswordField";
+import { useAuthToken } from "../hooks/useAuthToken";
+import { loginUser } from "../services/authApi";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
-
-  const [identifier, setIdentifier] = useState("");
+  const { saveToken } = useAuthToken();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setError("");
-    setSubmitting(true);
+  const getAccessToken = (payload) => {
+    return (
+      payload?.data?.access_token ||
+      payload?.data?.accessToken ||
+      payload?.data?.token ||
+      payload?.access_token ||
+      payload?.accessToken ||
+      payload?.token
+    );
+  };
 
-    const trimmedIdentifier = identifier.trim();
-    const loginField = trimmedIdentifier.includes("@") ? "email" : "phone";
+  const handleLogin = async () => {
+    setLoginError("");
 
     try {
-      await login({
-        [loginField]: trimmedIdentifier,
+      const loginBody = {
+        email,
         password,
-      });
+      };
 
-      navigate("/dashboard");
-    } catch (submitError) {
-      setError(submitError.message);
-    } finally {
-      setSubmitting(false);
+      const data = await loginUser(loginBody);
+      const token = getAccessToken(data);
+
+      if (!token) {
+        setLoginError("Login worked, but no access token was returned.");
+        return;
+      }
+
+      saveToken(token);
+      navigate("/discover");
+    } catch (error) {
+      console.error(error);
+      setLoginError(error.message || "Could not log in.");
     }
   };
 
@@ -87,20 +102,13 @@ export default function Login() {
                 Please enter your details to access your sanctuary.
               </p>
 
-              <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Email or Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    value={identifier}
-                    onChange={(event) => setIdentifier(event.target.value)}
-                    placeholder="e.g. name@company.com"
-                    required
-                    className="w-full rounded-2xl border border-[#E7E8DE] bg-[#F7F8F0] px-4 py-4 text-sm text-slate-800 outline-none transition focus:border-sky-200"
-                  />
-                </div>
+              <form className="mt-8 space-y-5">
+                <AuthTextField
+                  label="Email or Phone Number"
+                  placeholder="e.g. name@company.com"
+                  value={email}
+                  onChange={setEmail}
+                />
 
                 <div>
                   <div className="mb-2 flex items-center justify-between">
@@ -115,30 +123,29 @@ export default function Login() {
                     </button>
                   </div>
 
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                  <PasswordField
+                    id="login-password"
+                    label=""
                     placeholder="Enter your password"
-                    required
-                    className="w-full rounded-2xl border border-[#E7E8DE] bg-[#F7F8F0] px-4 py-4 text-sm text-slate-800 outline-none transition focus:border-sky-200"
+                    value={password}
+                    onChange={setPassword}
                   />
                 </div>
 
-                {error && (
-                  <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
-                    {error}
-                  </p>
-                )}
-
                 <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full rounded-2xl bg-sky-900 px-5 py-4 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  type="button"
+                  onClick={handleLogin}
+                  className="w-full rounded-2xl bg-sky-900 px-5 py-4 text-sm font-semibold text-white transition hover:bg-sky-800"
                 >
-                  {submitting ? "Logging in..." : "Log In"}
+                  Log In
                 </button>
               </form>
+
+              {loginError && (
+                <p className="mt-4 text-center text-sm text-red-600">
+                  {loginError}
+                </p>
+              )}
 
               <p className="mt-8 text-center text-sm text-slate-500">
                 Don&apos;t have an account?{" "}

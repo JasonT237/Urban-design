@@ -1,4 +1,3 @@
-/** Static catalog (frontend-only; no API). */
 export const apartments = [
   {
     id: 1,
@@ -12,6 +11,7 @@ export const apartments = [
     baths: 2,
     category: "Family",
     tag: "Quiet",
+    amenities: ["wifi", "parking", "kitchen"],
     description:
       "Leafy residential calm with room for small groups. Secure parking and generator-backed power.",
   },
@@ -27,6 +27,7 @@ export const apartments = [
     baths: 1,
     category: "Executive",
     tag: "Fiber WiFi",
+    amenities: ["wifi", "workspace", "parking"],
     description:
       "Compact executive studio near finance and heritage sites. Ideal for short business stays.",
   },
@@ -42,6 +43,7 @@ export const apartments = [
     baths: 3,
     category: "Luxury",
     tag: "Terrace",
+    amenities: ["wifi", "parking", "air_conditioning", "pool"],
     description:
       "Spacious terrace residence with premium finishes and space for hosting.",
   },
@@ -56,6 +58,7 @@ export const apartments = [
     beds: 2,
     baths: 2,
     category: "Executive",
+    amenities: ["wifi", "workspace", "air_conditioning"],
     description: "Bright loft above the commerce district with fast access to dining and transit.",
   },
   {
@@ -70,6 +73,7 @@ export const apartments = [
     baths: 2,
     category: "Family",
     tag: "Kid-friendly",
+    amenities: ["wifi", "parking", "kitchen"],
     description: "Practical family layout with extra storage and a relaxed residential feel.",
   },
   {
@@ -84,6 +88,7 @@ export const apartments = [
     baths: 2,
     category: "Luxury",
     tag: "Design",
+    amenities: ["wifi", "air_conditioning", "kitchen"],
     description: "Editorial interiors and premium linens for a refined short stay.",
   },
 ];

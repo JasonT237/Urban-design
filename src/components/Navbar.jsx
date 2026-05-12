@@ -1,30 +1,24 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useAuth } from "../hooks/useAuth";
+import { useAuthToken } from "../hooks/useAuthToken";
 
 const navLinks = [
-  { label: "Discover", to: "/", activeKey: "discover" },
+  { label: "Discover", to: "/discover", activeKey: "discover" },
   { label: "Neighborhoods", to: "/apartments", activeKey: "apartments" },
   { label: "Reservations", to: "/history", activeKey: "reservations" },
   { label: "Support", to: "/support", activeKey: "support" },
 ];
 
-const authenticatedUserLinks = [
+const userLinks = [
   { label: "Profile", to: "/profile" },
   { label: "Dashboard", to: "/dashboard" },
   { label: "Booking History", to: "/history" },
-  { label: "Saved Places", to: "/saved" },
-];
-
-const guestUserLinks = [
-  { label: "Login", to: "/login" },
-  { label: "Register", to: "/register" },
 ];
 
 function isRouteActive(path, type) {
   switch (type) {
     case "discover":
-      return path === "/";
+      return path === "/" || path === "/discover";
     case "apartments":
       return path.startsWith("/apartments");
     case "reservations":
@@ -100,27 +94,26 @@ function DropdownLink({ link, currentPath, onClick }) {
 
 export default function Navbar() {
   const { pathname } = useLocation();
-  const { isAuthenticated, logout, user } = useAuth();
+  const navigate = useNavigate();
+  const { isAuthenticated, clearToken } = useAuthToken();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
   const closeMenu = () => setMenuOpen(false);
   const closeProfile = () => setProfileOpen(false);
   const isActive = (type) => isRouteActive(pathname, type);
-  const userLinks = isAuthenticated ? authenticatedUserLinks : guestUserLinks;
-  const userInitial = user?.first_name?.[0] || user?.email?.[0] || "U";
-
-  const handleLogout = async () => {
-    await logout();
+  const handleLogout = () => {
+    clearToken();
     closeMenu();
     closeProfile();
+    navigate("/login");
   };
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#E7E8DE] bg-[#F7F8F0]/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8 lg:px-10">
         <Link
-          to="/"
+          to="/discover"
           className="text-[15px] font-semibold tracking-tight text-sky-900 transition hover:opacity-90"
         >
           Urban Sanctuary
@@ -148,7 +141,7 @@ export default function Navbar() {
               aria-label="User menu"
               type="button"
             >
-              {userInitial.toUpperCase()}
+              U
             </button>
 
             {profileOpen && (

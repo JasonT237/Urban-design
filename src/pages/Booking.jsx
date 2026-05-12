@@ -2,21 +2,32 @@ import { useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import NotFound from "../components/NotFound";
 import ApartmentSummary from "../components/ApartmentSummary";
-import { useApartments } from "../hooks/useApartments";
+import { useApartmentResource } from "../hooks/useApartmentResource";
+import { useAuthToken } from "../hooks/useAuthToken";
 import { calculateNights, formatXAF } from "../lib/format";
+import { createBooking as createBookingRequest } from "../services/bookingsApi";
 
 export default function Booking() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { getApartmentById } = useApartments();
+  const { apartment, isLoading: isLoadingApartment } = useApartmentResource(id);
+  const { isAuthenticated } = useAuthToken();
   const bookingState = location.state || {};
 
+  const [isCreatingBooking, setIsCreatingBooking] = useState(false);
+  const [bookingError, setBookingError] = useState("");
   const [checkIn, setCheckIn] = useState(() => bookingState.checkIn || "");
   const [checkOut, setCheckOut] = useState(() => bookingState.checkOut || "");
   const [guests, setGuests] = useState(() => bookingState.guests || 1);
 
-  const apartment = getApartmentById(id);
+  if (isLoadingApartment) {
+    return (
+      <div className="min-h-screen bg-[#F7F8F0] px-6 py-16 text-center text-slate-600">
+        Loading apartment...
+      </div>
+    );
+  }
 
   if (!apartment) {
     return <NotFound />;
@@ -24,6 +35,53 @@ export default function Booking() {
 
   const nights = calculateNights(checkIn, checkOut);
   const totalPrice = nights * apartment.price;
+
+  const createBooking = async () => {
+    setBookingError("");
+
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    if (!checkIn || !checkOut) {
+      setBookingError("Please choose your check-in and check-out dates.");
+      return;
+    }
+
+    try {
+      setIsCreatingBooking(true);
+
+      const bookingBody = {
+        property_id: id,
+        check_in: checkIn,
+        check_out: checkOut,
+        guests_count: Number(guests),
+      };
+
+      const booking = await createBookingRequest(bookingBody);
+      const bookingId = booking?.id || booking?.booking_id;
+
+      navigate(`/payment/${apartment.id}`, {
+        state: {
+          bookingId,
+          checkIn,
+          checkOut,
+          guests,
+          nights,
+          totalPrice,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      setBookingError(
+        error.message ||
+          "Could not create booking. Please check your dates and try again.",
+      );
+    } finally {
+      setIsCreatingBooking(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F7F8F0] text-slate-900">
@@ -108,21 +166,18 @@ export default function Booking() {
             </div>
 
             <button
-              onClick={() =>
-                navigate(`/payment/${apartment.id}`, {
-                  state: {
-                    checkIn,
-                    checkOut,
-                    guests,
-                    nights,
-                    totalPrice,
-                  },
-                })
-              }
+              onClick={createBooking}
+              disabled={isCreatingBooking}
               className="mt-6 w-full rounded-xl bg-sky-900 px-5 py-4 font-semibold text-white transition hover:bg-sky-800"
             >
-              Confirm Booking
+              {isCreatingBooking ? "Creating booking..." : "Confirm Booking"}
             </button>
+
+            {bookingError && (
+              <p className="mt-4 text-center text-sm text-red-600">
+                {bookingError}
+              </p>
+            )}
 
             <p className="mt-4 text-center text-sm text-slate-500">
               You will review payment on the next step.

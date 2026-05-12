@@ -22,4 +22,3 @@ export function listProperties(params = {}) {
 export function getProperty(id) {
   return apiRequest(`/properties/${id}`);
 }
- 

@@ -14,6 +14,15 @@ import MainLayout from "../components/MainLayout";
 import Support from "../pages/Support";
 import Profile from "../pages/Profile";
 import Saved from "../pages/Saved";
+import { AdminPortalProvider } from "../context/AdminPortalProvider";
+import AdminLayout from "../components/adminpage/AdminLayout";
+import AdminDashboard from "../components/adminpage/AdminDashboard";
+import AdminUsers from "../components/adminpage/AdminUsers";
+import AdminProperties from "../components/adminpage/AdminProperties";
+import AdminBooking from "../components/adminpage/AdminBooking";
+import AdminContent from "../components/adminpage/AdminContent";
+import AdminSettingss from "../components/adminpage/AdminSettingss";
+import AdminSupport from "../components/adminpage/AdminSupport";
 import { getStoredAuthToken, getStoredUserRole } from "../hooks/useAuthToken";
 
 function ProtectedRoute({ children, allowedRoles }) {
@@ -34,9 +43,10 @@ function ProtectedRoute({ children, allowedRoles }) {
 
 function PublicOnlyRoute({ children }) {
   const token = getStoredAuthToken();
+  const role = getStoredUserRole();
 
   if (token) {
-    return <Navigate to="/apartments" replace />;
+    return <Navigate to={role === "admin" ? "/admin" : "/apartments"} replace />;
   }
 
   return children;
@@ -134,6 +144,25 @@ export default function AppRouter() {
             </PublicOnlyRoute>
           }
         />
+
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminPortalProvider>
+                <AdminLayout />
+              </AdminPortalProvider>
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="properties" element={<AdminProperties />} />
+          <Route path="bookings" element={<AdminBooking />} />
+          <Route path="content" element={<AdminContent />} />
+          <Route path="security" element={<AdminSettingss />} />
+          <Route path="support" element={<AdminSupport />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );

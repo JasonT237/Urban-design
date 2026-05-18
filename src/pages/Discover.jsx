@@ -14,8 +14,6 @@ export default function Discover() {
   const [location, setLocation] = useState("");
   const [guests, setGuests] = useState("All");
 
-
-
   const openApartments = (params = {}) => {
     const searchParams = new URLSearchParams(params);
     navigate(`/apartments?${searchParams.toString()}`);

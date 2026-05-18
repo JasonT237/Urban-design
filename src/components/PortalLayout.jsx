@@ -6,7 +6,12 @@ const portalLinks = [
   { id: "saved", label: "Saved Places", to: "/saved" },
 ];
 
-function PortalSidebar({ active }) {
+const defaultMemberStatus = {
+  message: "Your booking activity will update your member status.",
+  progress: 0,
+};
+
+function PortalSidebar({ active, memberStatus = defaultMemberStatus }) {
   return (
     <aside className="h-fit rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
       <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -33,23 +38,24 @@ function PortalSidebar({ active }) {
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
           Member status
         </p>
-        <p className="mt-2 text-sm text-slate-700">
-          You're 3 nights away from Silver Status.
-        </p>
+        <p className="mt-2 text-sm text-slate-700">{memberStatus.message}</p>
         <div className="mt-4 h-2 w-full rounded-full bg-slate-200">
-          <div className="h-2 w-2/3 rounded-full bg-sky-900" />
+          <div
+            className="h-2 rounded-full bg-sky-900"
+            style={{ width: `${memberStatus.progress}%` }}
+          />
         </div>
       </div>
     </aside>
   );
 }
 
-export default function PortalLayout({ active, children }) {
+export default function PortalLayout({ active, children, memberStatus }) {
   return (
     <div className="min-h-screen bg-[#F7F8F0] px-4 py-8 md:px-8 lg:px-12">
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-          <PortalSidebar active={active} />
+          <PortalSidebar active={active} memberStatus={memberStatus} />
           <section>{children}</section>
         </div>
       </div>

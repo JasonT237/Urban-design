@@ -1,28 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import LoadingScreen from "../components/LoadingScreen";
 import NotFound from "../components/NotFound";
 import StatusBadge from "../components/StatusBadge";
+import {
+  formatBookingDate,
+  formatBookingStatus,
+} from "../lib/bookingAdapter";
 import { formatXAF } from "../lib/format";
+import { pickPropertyImage } from "../lib/images";
 import { getBooking } from "../services/bookingsApi";
-
-const fallbackImage =
-  "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80";
-
-function formatDate(date) {
-  if (!date) return "-";
-
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(date));
-}
-
-function formatStatus(status) {
-  if (!status) return "Pending";
-
-  return status.charAt(0).toUpperCase() + status.slice(1);
-}
 
 function DetailItem({ label, value }) {
   return (
@@ -33,6 +20,11 @@ function DetailItem({ label, value }) {
       <p className="mt-2 text-base font-semibold text-slate-900">{value}</p>
     </div>
   );
+}
+
+function getGuestDisplayName(guest) {
+  const fullName = [guest.first_name, guest.last_name].filter(Boolean).join(" ");
+  return fullName || guest.email || "Guest details unavailable";
 }
 
 export default function ReservationDetails() {
@@ -61,11 +53,7 @@ export default function ReservationDetails() {
   }, [id]);
 
   if (isLoadingBooking) {
-    return (
-      <div className="min-h-screen bg-[#F7F8F0] px-6 py-16 text-center text-slate-600">
-        Loading reservation...
-      </div>
-    );
+    return <LoadingScreen message="Loading reservation..." />;
   }
 
   if (bookingError) {
@@ -86,9 +74,6 @@ export default function ReservationDetails() {
 
   const property = booking.property || {};
   const guest = booking.guest || {};
-  const images = property.images || [];
-  const image =
-    property.image || property.image_url || images[0]?.url || images[0] || fallbackImage;
 
   return (
     <div className="min-h-screen bg-[#F7F8F0] px-4 py-10 text-slate-900 md:px-8 lg:px-12">
@@ -103,7 +88,7 @@ export default function ReservationDetails() {
         <div className="mt-6 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
           <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
             <img
-              src={image}
+              src={pickPropertyImage(property)}
               alt={property.title || "Reservation property"}
               className="h-80 w-full object-cover lg:h-full"
             />
@@ -122,19 +107,31 @@ export default function ReservationDetails() {
                   </p>
                 </div>
 
-                <StatusBadge status={formatStatus(booking.status)} />
+                <StatusBadge status={formatBookingStatus(booking.status)} />
               </div>
 
               <div className="mt-8 grid gap-4 md:grid-cols-2">
-                <DetailItem label="Check-in" value={formatDate(booking.check_in)} />
-                <DetailItem label="Check-out" value={formatDate(booking.check_out)} />
+                <DetailItem
+                  label="Check-in"
+                  value={formatBookingDate(booking.check_in)}
+                />
+                <DetailItem
+                  label="Check-out"
+                  value={formatBookingDate(booking.check_out)}
+                />
                 <DetailItem label="Nights" value={booking.nights || 0} />
                 <DetailItem
                   label="Guests"
                   value={booking.guests_count || booking.guests || 1}
                 />
-                <DetailItem label="Base amount" value={formatXAF(booking.base_amount)} />
-                <DetailItem label="Total amount" value={formatXAF(booking.total_amount)} />
+                <DetailItem
+                  label="Base amount"
+                  value={formatXAF(booking.base_amount)}
+                />
+                <DetailItem
+                  label="Total amount"
+                  value={formatXAF(booking.total_amount)}
+                />
               </div>
 
               <div className="mt-8 rounded-2xl border border-slate-200 p-5">
@@ -142,9 +139,7 @@ export default function ReservationDetails() {
                   Guest
                 </p>
                 <p className="mt-2 text-lg font-semibold text-slate-900">
-                  {[guest.first_name, guest.last_name].filter(Boolean).join(" ") ||
-                    guest.email ||
-                    "Guest details unavailable"}
+                  {getGuestDisplayName(guest)}
                 </p>
                 {guest.email && (
                   <p className="mt-1 text-sm text-slate-600">{guest.email}</p>
@@ -156,7 +151,9 @@ export default function ReservationDetails() {
 
               <div className="mt-6 rounded-2xl bg-sky-900 p-5 text-white">
                 <p className="text-sm text-sky-100">Reservation ID</p>
-                <p className="mt-2 break-all text-sm font-semibold">{booking.id}</p>
+                <p className="mt-2 break-all text-sm font-semibold">
+                  {booking.id}
+                </p>
               </div>
             </div>
           </div>

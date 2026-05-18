@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthTextField from "../components/auth/AuthTextField";
 import PasswordField from "../components/auth/PasswordField";
-import { useAuthToken } from "../hooks/useAuthToken";
+import { getStoredUserRole, useAuthToken } from "../hooks/useAuthToken";
 import { loginUser } from "../services/authApi";
 
 export default function Login() {
@@ -41,7 +41,8 @@ export default function Login() {
       }
 
       saveToken(token);
-      navigate("/discover");
+      const role = getStoredUserRole();
+      navigate(role === "admin" ? "/admin" : "/discover");
     } catch (error) {
       console.error(error);
       setLoginError(error.message || "Could not log in.");

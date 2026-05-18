@@ -2,10 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { formatAmenityLabel } from "../lib/apartmentFilters";
 import { formatXAF } from "../lib/format";
 
-
 export default function ApartmentCard({ apartment }) {
   const navigate = useNavigate();
-
 
   return (
     <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import NotFound from "../components/NotFound";
 import ApartmentSummary from "../components/ApartmentSummary";
+import LoadingScreen from "../components/LoadingScreen";
 import { useApartmentResource } from "../hooks/useApartmentResource";
 import { useAuthToken } from "../hooks/useAuthToken";
 import { calculateNights, formatXAF } from "../lib/format";
@@ -22,11 +23,7 @@ export default function Booking() {
   const [guests, setGuests] = useState(() => bookingState.guests || 1);
 
   if (isLoadingApartment) {
-    return (
-      <div className="min-h-screen bg-[#F7F8F0] px-6 py-16 text-center text-slate-600">
-        Loading apartment...
-      </div>
-    );
+    return <LoadingScreen message="Loading apartment..." />;
   }
 
   if (!apartment) {

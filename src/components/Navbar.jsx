@@ -9,10 +9,19 @@ const navLinks = [
   { label: "Support", to: "/support", activeKey: "support" },
 ];
 
+const publicNavLinks = [
+  { label: "Discover", to: "/", activeKey: "discover" },
+];
+
 const userLinks = [
   { label: "Profile", to: "/profile" },
   { label: "Dashboard", to: "/dashboard" },
   { label: "Booking History", to: "/history" },
+];
+
+const adminUserLinks = [
+  { label: "Admin Console", to: "/admin" },
+  ...userLinks,
 ];
 
 function isRouteActive(path, type) {
@@ -28,8 +37,8 @@ function isRouteActive(path, type) {
     case "support":
       return path.startsWith("/support");
     case "user":
-      return ["/login", "/register", "/dashboard", "/profile"].some((route) =>
-        path.startsWith(route),
+      return ["/login", "/register", "/dashboard", "/profile", "/admin"].some(
+        (route) => path.startsWith(route),
       );
     default:
       return false;
@@ -95,9 +104,11 @@ function DropdownLink({ link, currentPath, onClick }) {
 export default function Navbar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, clearToken } = useAuthToken();
+  const { isAuthenticated, clearToken, role } = useAuthToken();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const visibleNavLinks = isAuthenticated ? navLinks : publicNavLinks;
+  const accountLinks = role === "admin" ? adminUserLinks : userLinks;
 
   const closeMenu = () => setMenuOpen(false);
   const closeProfile = () => setProfileOpen(false);
@@ -113,14 +124,14 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 border-b border-[#E7E8DE] bg-[#F7F8F0]/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8 lg:px-10">
         <Link
-          to="/discover"
+          to={isAuthenticated ? "/discover" : "/"}
           className="text-[15px] font-semibold tracking-tight text-sky-900 transition hover:opacity-90"
         >
           Urban Sanctuary
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          {navLinks.map((link) => (
+          {visibleNavLinks.map((link) => (
             <DesktopNavLink
               key={link.to}
               link={link}
@@ -130,6 +141,16 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3">
+          {!isAuthenticated && (
+            <Link
+              to="/login"
+              className="hidden rounded-full bg-sky-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-sky-800 md:inline-flex"
+            >
+              Login
+            </Link>
+          )}
+
+          {isAuthenticated && (
           <div className="relative hidden md:block">
             <button
               onClick={() => setProfileOpen((previous) => !previous)}
@@ -146,7 +167,7 @@ export default function Navbar() {
 
             {profileOpen && (
               <div className="absolute right-0 mt-3 w-52 rounded-2xl border border-[#E7E8DE] bg-white p-2 shadow-lg">
-                {userLinks.map((link) => (
+                {accountLinks.map((link) => (
                   <DropdownLink
                     key={link.to}
                     link={link}
@@ -166,22 +187,32 @@ export default function Navbar() {
               </div>
             )}
           </div>
+          )}
 
-          <button
-            onClick={() => setMenuOpen((previous) => !previous)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E7E8DE] bg-white text-slate-600 transition duration-200 hover:-translate-y-[1px] hover:bg-slate-50 hover:shadow-sm md:hidden"
-            aria-label="Open menu"
-            type="button"
-          >
-            Menu
-          </button>
+          {isAuthenticated ? (
+            <button
+              onClick={() => setMenuOpen((previous) => !previous)}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E7E8DE] bg-white text-slate-600 transition duration-200 hover:-translate-y-[1px] hover:bg-slate-50 hover:shadow-sm md:hidden"
+              aria-label="Open menu"
+              type="button"
+            >
+              Menu
+            </button>
+          ) : (
+            <Link
+              to="/login"
+              className="rounded-full bg-sky-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800 md:hidden"
+            >
+              Login
+            </Link>
+          )}
         </div>
       </div>
 
-      {menuOpen && (
+      {menuOpen && isAuthenticated && (
         <div className="border-t border-[#E7E8DE] bg-[#F7F8F0] px-4 py-4 md:hidden">
           <div className="flex flex-col gap-4">
-            {navLinks.map((link) => (
+            {visibleNavLinks.map((link) => (
               <MobileNavLink
                 key={link.to}
                 link={link}
@@ -196,7 +227,7 @@ export default function Navbar() {
               </div>
 
               <div className="flex flex-col gap-3">
-                {userLinks.map((link) => (
+                {accountLinks.map((link) => (
                   <Link
                     key={link.to}
                     to={link.to}

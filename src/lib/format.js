@@ -13,3 +13,18 @@ export function calculateNights(checkIn, checkOut) {
 
   return (end - start) / (1000 * 60 * 60 * 24);
 }
+
+export function formatShortDate(date) {
+  if (!date) return "-";
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(date));
+}
+
+export function capitalize(value) {
+  if (!value || typeof value !== "string") return value || "";
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}

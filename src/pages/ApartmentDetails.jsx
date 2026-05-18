@@ -8,6 +8,7 @@ import LocationPreview from "../components/apartment-details/LocationPreview";
 import ReservationPanel from "../components/apartment-details/ReservationPanel";
 import ReviewsSection from "../components/apartment-details/ReviewsSection";
 import NotFound from "../components/NotFound";
+import LoadingScreen from "../components/LoadingScreen";
 import { amenities, reviews } from "../data/apartmentDetailsContent";
 import { useApartmentResource } from "../hooks/useApartmentResource";
 
@@ -20,11 +21,7 @@ export default function ApartmentDetails() {
   const [guests, setGuests] = useState("1");
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#F7F8F0] px-6 py-16 text-center text-slate-600">
-        Loading apartment...
-      </div>
-    );
+    return <LoadingScreen message="Loading apartment..." />;
   }
 
   if (!apartment) {

@@ -1,4 +1,4 @@
-import { apiRequest } from "./apiClient";
+import { apiRequest, buildQueryString } from "./apiClient";
 
 export function getCurrentUser() {
   return apiRequest("/users/me");
@@ -19,12 +19,5 @@ export function changeCurrentUserPassword(body) {
 }
 
 export function getCurrentUserNotifications(params = {}) {
-  const searchParams = new URLSearchParams();
-
-  if (params.page) searchParams.set("page", params.page);
-  if (params.per_page) searchParams.set("per_page", params.per_page);
-
-  const query = searchParams.toString();
-
-  return apiRequest(`/users/me/notifications${query ? `?${query}` : ""}`);
+  return apiRequest(`/users/me/notifications${buildQueryString(params)}`);
 }

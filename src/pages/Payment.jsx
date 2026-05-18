@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import NotFound from "../components/NotFound";
 import ApartmentSummary from "../components/ApartmentSummary";
+import LoadingScreen from "../components/LoadingScreen";
 import { useApartmentResource } from "../hooks/useApartmentResource";
 import { useAuthToken } from "../hooks/useAuthToken";
 import { initiatePayment as initiatePaymentRequest } from "../services/paymentsApi";
@@ -18,11 +19,7 @@ export default function Payment() {
   const [paymentError, setPaymentError] = useState("");
 
   if (isLoadingApartment) {
-    return (
-      <div className="min-h-screen bg-[#F7F8F0] px-6 py-16 text-center text-slate-600">
-        Loading apartment...
-      </div>
-    );
+    return <LoadingScreen message="Loading apartment..." />;
   }
 
   if (!apartment) {

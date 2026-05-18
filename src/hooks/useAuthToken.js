@@ -6,7 +6,7 @@ export function getStoredAuthToken() {
   return localStorage.getItem(TOKEN_STORAGE_KEY);
 }
 
-export function getStoredTokenPayload() {
+function getStoredTokenPayload() {
   const token = getStoredAuthToken();
 
   if (!token) {
@@ -55,22 +55,11 @@ export function useAuthToken() {
     setToken(null);
   };
 
-  const getAuthHeaders = () => {
-    if (!token) {
-      return {};
-    }
-
-    return {
-      Authorization: `Bearer ${token}`,
-    };
-  };
-
   return {
     token,
     isAuthenticated: Boolean(token),
     role: getStoredUserRole(),
     saveToken,
     clearToken,
-    getAuthHeaders,
   };
 }

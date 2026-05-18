@@ -10,11 +10,17 @@ export default function RecentTransactions({ transactions }) {
         </button>
       </div>
 
-      <div className="space-y-4">
-        {transactions.map((transaction) => (
-          <TransactionRow key={transaction.id} transaction={transaction} />
-        ))}
-      </div>
+      {transactions.length === 0 ? (
+        <p className="rounded-[1.5rem] bg-[#F7F8F0] p-5 text-sm text-slate-600">
+          Your recent booking transactions will appear here.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {transactions.map((transaction) => (
+            <TransactionRow key={transaction.id} transaction={transaction} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

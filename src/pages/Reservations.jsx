@@ -1,51 +1,10 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PortalLayout from "../components/PortalLayout";
 import StatusBadge from "../components/StatusBadge";
-import { formatXAF } from "../lib/format";
-import { getStoredUserRole } from "../hooks/useAuthToken";
-import { listBookings } from "../services/bookingsApi";
-
-const fallbackImage =
-  "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80";
-
-function formatDate(date) {
-  if (!date) return "-";
-
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(date));
-}
-
-function formatStatus(status) {
-  if (!status) return "Pending";
-
-  return status.charAt(0).toUpperCase() + status.slice(1);
-}
-
-function normalizeBooking(booking) {
-  const property = booking.property || {};
-  const images = property.images || [];
-  const image =
-    property.image ||
-    property.image_url ||
-    images[0]?.url ||
-    images[0] ||
-    fallbackImage;
-
-  return {
-    id: booking.id,
-    title: property.title || "Reserved apartment",
-    location: property.address || property.neighborhood || "Douala",
-    checkIn: formatDate(booking.check_in),
-    checkOut: formatDate(booking.check_out),
-    amount: formatXAF(booking.total_amount),
-    status: formatStatus(booking.status),
-    image,
-  };
-}
+import StatusMessage from "../components/StatusMessage";
+import { useBookings } from "../hooks/useBookings";
+import { useUserRole } from "../hooks/useUserRole";
+import { canCancelBooking } from "../lib/bookingAdapter";
 
 function BookingInfo({ label, value }) {
   return (
@@ -58,7 +17,7 @@ function BookingInfo({ label, value }) {
   );
 }
 
-function BookingCard({ booking }) {
+function BookingCard({ booking, canCancel, isCancelling, onCancel }) {
   return (
     <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-[#F7F8F0]">
       <div className="grid gap-0 md:grid-cols-[220px_1fr]">
@@ -88,8 +47,8 @@ function BookingCard({ booking }) {
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <BookingInfo label="Check-in" value={booking.checkIn} />
-            <BookingInfo label="Check-out" value={booking.checkOut} />
+            <BookingInfo label="Check-in" value={booking.formattedCheckIn} />
+            <BookingInfo label="Check-out" value={booking.formattedCheckOut} />
             <BookingInfo
               label="Reservation ID"
               value={`#${booking.id.toString().padStart(4, "0")}`}
@@ -108,9 +67,14 @@ function BookingCard({ booking }) {
               Download Receipt
             </button>
 
-            {booking.status === "Upcoming" && (
-              <button className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100">
-                Cancel Booking
+            {canCancel && (
+              <button
+                className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isCancelling}
+                onClick={() => onCancel(booking.id)}
+                type="button"
+              >
+                {isCancelling ? "Cancelling..." : "Cancel Booking"}
               </button>
             )}
           </div>
@@ -120,31 +84,31 @@ function BookingCard({ booking }) {
   );
 }
 
+function ReservationsEmptyState() {
+  return (
+    <div className="mt-8 rounded-[1.5rem] border border-slate-200 bg-[#F7F8F0] p-8 text-center">
+      <h2 className="text-2xl font-semibold text-slate-900">No bookings yet</h2>
+      <p className="mt-3 text-slate-600">
+        Your real booking history will appear here after you complete a
+        reservation.
+      </p>
+    </div>
+  );
+}
+
 export default function Reservations() {
-  const [bookings, setBookings] = useState([]);
-  const [isLoadingBookings, setIsLoadingBookings] = useState(false);
-  const [bookingsError, setBookingsError] = useState("");
-  const role = getStoredUserRole();
-  const isAdmin = role === "admin";
+  const {
+    bookings,
+    isLoading,
+    isCancelling: cancellingBookingId,
+    error,
+    successMessage,
+    confirmAndCancelBooking,
+  } = useBookings({ page: 1, per_page: 20 });
+  const { isAdmin } = useUserRole();
 
-  useEffect(() => {
-    const getBookings = async () => {
-      setIsLoadingBookings(true);
-      setBookingsError("");
-
-      try {
-        const data = await listBookings({ page: 1, per_page: 20 });
-        setBookings(data.map(normalizeBooking));
-      } catch (error) {
-        console.error(error);
-        setBookingsError(error.message);
-      } finally {
-        setIsLoadingBookings(false);
-      }
-    };
-
-    getBookings();
-  }, []);
+  const showEmptyState = !isLoading && !error && bookings.length === 0;
+  const showBookings = !isLoading && !error && bookings.length > 0;
 
   return (
     <PortalLayout active="history">
@@ -169,32 +133,26 @@ export default function Reservations() {
           </button>
         </div>
 
-        {isLoadingBookings && (
-          <p className="mt-8 text-slate-600">Loading bookings...</p>
-        )}
+        <div className="mt-8 space-y-4">
+          {isLoading && (
+            <StatusMessage tone="info" message="Loading bookings..." />
+          )}
+          <StatusMessage tone="error" message={error} />
+          <StatusMessage tone="success" message={successMessage} />
+        </div>
 
-        {bookingsError && (
-          <p className="mt-8 rounded-2xl bg-red-50 p-4 text-sm text-red-600">
-            {bookingsError}
-          </p>
-        )}
+        {showEmptyState && <ReservationsEmptyState />}
 
-        {!isLoadingBookings && !bookingsError && bookings.length === 0 && (
-          <div className="mt-8 rounded-[1.5rem] border border-slate-200 bg-[#F7F8F0] p-8 text-center">
-            <h2 className="text-2xl font-semibold text-slate-900">
-              No bookings yet
-            </h2>
-            <p className="mt-3 text-slate-600">
-              Your real booking history will appear here after you complete a
-              reservation.
-            </p>
-          </div>
-        )}
-
-        {!isLoadingBookings && !bookingsError && bookings.length > 0 && (
+        {showBookings && (
           <div className="mt-8 space-y-5">
             {bookings.map((booking) => (
-              <BookingCard key={booking.id} booking={booking} />
+              <BookingCard
+                key={booking.id}
+                booking={booking}
+                canCancel={canCancelBooking(booking, isAdmin)}
+                isCancelling={cancellingBookingId === booking.id}
+                onCancel={confirmAndCancelBooking}
+              />
             ))}
           </div>
         )}

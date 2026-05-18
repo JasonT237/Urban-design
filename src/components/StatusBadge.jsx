@@ -7,11 +7,15 @@ const statusClasses = {
 };
 
 export default function StatusBadge({ status }) {
-  const tone = statusClasses[status.toLowerCase()] || "bg-slate-100 text-slate-700";
+  const label = status || "Pending";
+  const key = typeof label === "string" ? label.toLowerCase() : "";
+  const tone = statusClasses[key] || "bg-slate-100 text-slate-700";
 
   return (
-    <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${tone}`}>
-      {status}
+    <span
+      className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${tone}`}
+    >
+      {label}
     </span>
   );
 }

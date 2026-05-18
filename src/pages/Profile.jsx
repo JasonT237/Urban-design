@@ -5,6 +5,7 @@ import {
   NotificationsPanel,
   SecuritySettingsPanel,
 } from "../components/profile/SettingsPanel";
+import { FeedbackBanner } from "../components/StatusMessage";
 import { useProfile } from "../hooks/useProfile";
 
 export default function Profile() {
@@ -53,17 +54,7 @@ export default function Profile() {
             <ProfileSummary user={user} onEditProfile={scrollToProfileForm} />
 
             <div className="space-y-6" ref={profileFormRef}>
-              {(error || successMessage) && (
-                <div
-                  className={`rounded-2xl border px-5 py-4 text-sm ${
-                    error
-                      ? "border-red-200 bg-red-50 text-red-700"
-                      : "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  }`}
-                >
-                  {error || successMessage}
-                </div>
-              )}
+              <FeedbackBanner error={error} successMessage={successMessage} />
 
               <PersonalInfoPanel
                 isSaving={isSaving}

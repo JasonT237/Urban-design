@@ -1,5 +1,4 @@
-const fallbackImage =
-  "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80";
+import { pickPropertyImage } from "./images";
 
 export function findPropertyList(payload) {
   const possibleLists = [
@@ -31,20 +30,7 @@ export function normalizeProperty(property) {
     return null;
   }
 
-  const images = property.images || property.photos || [];
-  const firstImage =
-    property.image ||
-    property.image_url ||
-    property.cover_image ||
-    property.thumbnail ||
-    images[0]?.url ||
-    images[0] ||
-    fallbackImage;
-
-  const locationParts = [
-    property.neighborhood,
-    property.city,
-  ].filter(Boolean);
+  const locationParts = [property.neighborhood, property.city].filter(Boolean);
 
   return {
     id: property.id || property.uuid || property.property_id,
@@ -60,7 +46,7 @@ export function normalizeProperty(property) {
       property.nightly_price ||
       property.base_price ||
       0,
-    image: firstImage,
+    image: pickPropertyImage(property),
     guests: property.guests || property.max_guests || property.capacity || 1,
     beds: property.beds || property.bedrooms || 1,
     baths: property.baths || property.bathrooms || 1,

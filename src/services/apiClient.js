@@ -18,6 +18,7 @@ export function buildQueryString(params = {}) {
 
 export async function apiRequest(path, options = {}) {
   const token = localStorage.getItem("access_token");
+  const shouldSendToken = options.auth !== false;
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: options.method || "GET",
@@ -25,7 +26,7 @@ export async function apiRequest(path, options = {}) {
     headers: {
       Accept: "application/json",
       ...(options.body ? { "Content-Type": "application/json" } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(shouldSendToken && token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
     body: options.body ? JSON.stringify(options.body) : undefined,

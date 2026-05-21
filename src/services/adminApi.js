@@ -22,6 +22,13 @@ export function listAdminProperties(params = {}) {
   return apiGetList(`/admin/properties${buildQueryString(params)}`);
 }
 
+export function updateAdminProperty(propertyId, body) {
+  return apiRequest(`/properties/${propertyId}`, {
+    method: "PATCH",
+    body,
+  });
+}
+
 export function listAdminBookings(params = {}) {
   return apiGetList(`/admin/bookings${buildQueryString(params)}`);
 }

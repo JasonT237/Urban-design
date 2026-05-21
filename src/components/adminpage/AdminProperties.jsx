@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { listAdminProperties } from "../../services/adminApi";
 import { formatXAF } from "../../lib/format";
+import {
+  listAdminProperties,
+  updateAdminProperty,
+} from "../../services/adminApi";
 
 function StatusPill({ status }) {
   const tone =
@@ -19,11 +22,32 @@ function StatusPill({ status }) {
   );
 }
 
+function PropertyStatusAction({ property, busy, onChangeStatus }) {
+  const isPublished = property.status === "published";
+  const nextStatus = isPublished ? "archived" : "published";
+
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={() => onChangeStatus(property.id, nextStatus)}
+      className={`rounded-full px-3 py-1 text-xs font-semibold transition disabled:opacity-50 ${
+        isPublished
+          ? "border border-slate-300 text-slate-700 hover:bg-slate-100"
+          : "bg-sky-900 text-white hover:bg-sky-800"
+      }`}
+    >
+      {busy ? "Updating..." : isPublished ? "Archive" : "Publish"}
+    </button>
+  );
+}
+
 export default function AdminProperties() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+  const [busyId, setBusyId] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -45,6 +69,20 @@ export default function AdminProperties() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const changePropertyStatus = async (propertyId, nextStatus) => {
+    setBusyId(propertyId);
+    setError("");
+
+    try {
+      await updateAdminProperty(propertyId, { status: nextStatus });
+      await load();
+    } catch (err) {
+      setError(err.message || "Could not update property status.");
+    } finally {
+      setBusyId("");
+    }
+  };
 
   return (
     <div className="min-h-screen p-6 md:p-10">
@@ -91,31 +129,47 @@ export default function AdminProperties() {
                 <th className="px-4 py-3">Price / night</th>
                 <th className="px-4 py-3">Guests</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((property) => (
-                <tr
-                  key={property.id}
-                  className="border-b border-slate-100 hover:bg-slate-50/80"
-                >
-                  <td className="px-4 py-3 font-medium text-slate-900">
-                    {property.title}
-                  </td>
-                  <td className="px-4 py-3 capitalize text-slate-600">
-                    {property.neighborhood || "No neighborhood"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {formatXAF(property.price_per_night || 0)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {property.max_guests ?? "No guest limit"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusPill status={property.status} />
+              {items.length === 0 ? (
+                <tr>
+                  <td className="px-4 py-8 text-center text-slate-500" colSpan={6}>
+                    No properties found for this status.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                items.map((property) => (
+                  <tr
+                    key={property.id}
+                    className="border-b border-slate-100 hover:bg-slate-50/80"
+                  >
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      {property.title}
+                    </td>
+                    <td className="px-4 py-3 capitalize text-slate-600">
+                      {property.neighborhood || "No neighborhood"}
+                    </td>
+                    <td className="px-4 py-3">
+                      {formatXAF(property.price_per_night || 0)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {property.max_guests ?? "No guest limit"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusPill status={property.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <PropertyStatusAction
+                        property={property}
+                        busy={busyId === property.id}
+                        onChangeStatus={changePropertyStatus}
+                      />
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}

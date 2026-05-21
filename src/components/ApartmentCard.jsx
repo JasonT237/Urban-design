@@ -1,9 +1,12 @@
 import { useNavigate } from "react-router-dom";
+import { useSavedApartments } from "../hooks/useSavedApartments";
 import { formatAmenityLabel } from "../lib/apartmentFilters";
 import { formatXAF } from "../lib/format";
 
 export default function ApartmentCard({ apartment }) {
   const navigate = useNavigate();
+  const { isApartmentSaved, toggleSavedApartment } = useSavedApartments();
+  const isSaved = isApartmentSaved(apartment.id);
 
   return (
     <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
@@ -20,8 +23,17 @@ export default function ApartmentCard({ apartment }) {
           </span>
         )}
 
-        <button className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-sm text-slate-700 shadow-sm transition hover:bg-white">
-          ♡
+        <button
+          type="button"
+          onClick={() => toggleSavedApartment(apartment.id)}
+          aria-label={isSaved ? "Remove from saved places" : "Save apartment"}
+          className={`absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-sm shadow-sm transition ${
+            isSaved
+              ? "bg-sky-900 text-white hover:bg-sky-800"
+              : "bg-white/95 text-slate-700 hover:bg-white"
+          }`}
+        >
+          {isSaved ? "\u2665" : "\u2661"}
         </button>
       </div>
 
@@ -74,6 +86,7 @@ export default function ApartmentCard({ apartment }) {
           </div>
 
           <button
+            type="button"
             onClick={() => navigate(`/apartments/${apartment.id}`)}
             className="rounded-full bg-sky-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800"
           >

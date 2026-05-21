@@ -1,6 +1,18 @@
 import { formatXAF } from "../../lib/format";
 
+function getFeaturedTags(apartment) {
+  const tags = apartment.tags || [
+    apartment.tag,
+    apartment.category,
+    ...(apartment.amenities || []).slice(0, 2),
+  ];
+
+  return tags.filter(Boolean);
+}
+
 function FeaturedApartmentCard({ apartment, onView }) {
+  const tags = getFeaturedTags(apartment);
+
   return (
     <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
       <img
@@ -18,16 +30,18 @@ function FeaturedApartmentCard({ apartment, onView }) {
           {apartment.title}
         </h3>
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          {apartment.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full bg-[#F7F8F0] px-3 py-1 text-xs font-medium text-slate-600"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+        {tags.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-[#F7F8F0] px-3 py-1 text-xs font-medium text-slate-600"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="mt-5 flex items-center justify-between gap-3">
           <p className="text-base font-semibold text-sky-900">
@@ -72,7 +86,15 @@ function HostCta() {
   );
 }
 
-export default function FeaturedListings({ apartments, onViewAll, onViewApartment }) {
+export default function FeaturedListings({
+  apartments,
+  isLoading = false,
+  error = "",
+  onViewAll,
+  onViewApartment,
+}) {
+  const hasApartments = apartments.length > 0;
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-10 md:px-8 lg:px-10">
       <div className="mb-6 flex items-end justify-between gap-4">
@@ -94,13 +116,25 @@ export default function FeaturedListings({ apartments, onViewAll, onViewApartmen
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_1fr_0.9fr]">
-        {apartments.map((apartment) => (
-          <FeaturedApartmentCard
-            key={apartment.id}
-            apartment={apartment}
-            onView={() => onViewApartment(apartment.id)}
-          />
-        ))}
+        {hasApartments ? (
+          apartments.map((apartment) => (
+            <FeaturedApartmentCard
+              key={apartment.id}
+              apartment={apartment}
+              onView={() => onViewApartment(apartment.id)}
+            />
+          ))
+        ) : (
+          <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+            <p className="text-sm font-semibold text-slate-900">
+              {isLoading ? "Loading featured stays..." : "No featured stays yet"}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              {error ||
+                "Published backend apartments will appear here automatically."}
+            </p>
+          </div>
+        )}
 
         <HostCta />
       </div>

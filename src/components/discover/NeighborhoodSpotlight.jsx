@@ -16,26 +16,35 @@ export default function NeighborhoodSpotlight({ neighborhoods, onSelect }) {
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {neighborhoods.map((place) => (
-            <button
-              key={place.id}
-              onClick={() => onSelect(place.name)}
-              className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-[#F7F8F0] text-left transition hover:-translate-y-1 hover:shadow-md"
-            >
-              <img
-                src={place.image}
-                alt={place.name}
-                className="h-36 w-full object-cover"
-              />
+          {neighborhoods.length > 0 ? (
+            neighborhoods.map((place) => (
+              <button
+                key={place.id}
+                onClick={() => onSelect(place.name)}
+                className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-[#F7F8F0] text-left transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <img
+                  src={place.image}
+                  alt={place.name}
+                  className="h-36 w-full object-cover"
+                />
 
-              <div className="p-4">
-                <h3 className="text-lg font-semibold text-slate-900">
-                  {place.name}
-                </h3>
-                <p className="mt-1 text-sm text-slate-600">{place.subtitle}</p>
-              </div>
-            </button>
-          ))}
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    {place.name}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {place.subtitle}
+                  </p>
+                </div>
+              </button>
+            ))
+          ) : (
+            <div className="rounded-[1.5rem] border border-slate-200 bg-[#F7F8F0] p-5 text-center text-sm text-slate-600 sm:col-span-2 xl:col-span-4">
+              Neighborhoods will appear here when published properties are
+              returned by the backend.
+            </div>
+          )}
         </div>
       </div>
     </section>

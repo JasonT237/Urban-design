@@ -3,6 +3,7 @@ import { apiRequest } from "./apiClient";
 export function loginUser(body) {
   return apiRequest("/auth/login", {
     method: "POST",
+    auth: false,
     body,
   });
 }
@@ -10,6 +11,7 @@ export function loginUser(body) {
 export function registerUser(body) {
   return apiRequest("/auth/register", {
     method: "POST",
+    auth: false,
     body,
   });
 }

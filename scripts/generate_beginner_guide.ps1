@@ -160,7 +160,7 @@ Add (Title 'Urban Sanctuary Booking Portal')
 Add (Subtitle 'Beginner Developer Guide')
 Add (Tagline 'How the app works, what every file does, and where to make changes.')
 Add (Callout 'Who this guide is for' 'Junior developers, new teammates, or anyone who needs to understand or modify the booking portal frontend. No prior React experience is assumed; key terms are explained when first used.')
-Add (Callout 'How to read this guide' 'Start with sections 1 to 5 for the big picture. Section 11 lists every page and tells you which file to open for a given change. Section 14 is a quick-action cookbook: "I want to do X, change file Y."')
+Add (Callout 'How to read this guide' 'Start with sections 1 to 5 for the big picture. Section 11 lists every page and tells you which file to open for a given change. Sections 14 and 15 are the practical parts: common change recipes and what is already connected to the backend.')
 Add (PageBreak)
 
 # 1. What this app does
@@ -184,7 +184,7 @@ foreach ($b in @(
 )) { Add (Bullet $b) }
 
 Add (Heading 'What an admin user can do' 2)
-Add (Para 'When the JWT token says the user has the "admin" role, the same Reservations page automatically queries the admin endpoint and shows every booking in the system instead of only the current user''s bookings. Admins cannot cancel bookings on behalf of guests from the UI today.')
+Add (Para 'When the JWT token says the user has the "admin" role, Login redirects to /admin. The admin portal is separate from the guest booking pages and has its own layout under src/components/adminpage/. It currently connects to admin endpoints for dashboard totals, users, properties, bookings, support tickets, permissions, config, and audit-log export. Some editor-style controls are still UI placeholders until their matching backend endpoints are confirmed.')
 
 Add (Heading 'Pages at a glance' 2)
 Add (BuildTable @('Route','Page file','Who can see it') @(
@@ -202,6 +202,13 @@ Add (BuildTable @('Route','Page file','Who can see it') @(
   ,@('/support','src/pages/Support.jsx','Anyone')
   ,@('/login','src/pages/Login.jsx','Logged-out users only')
   ,@('/register','src/pages/Register.jsx','Logged-out users only')
+  ,@('/admin','src/components/adminpage/AdminDashboard.jsx','Admin users only')
+  ,@('/admin/users','src/components/adminpage/AdminUsers.jsx','Admin users only')
+  ,@('/admin/properties','src/components/adminpage/AdminProperties.jsx','Admin users only')
+  ,@('/admin/bookings','src/components/adminpage/AdminBooking.jsx','Admin users only')
+  ,@('/admin/content','src/components/adminpage/AdminContent.jsx','Admin users only')
+  ,@('/admin/security','src/components/adminpage/AdminSettingss.jsx','Admin users only')
+  ,@('/admin/support','src/components/adminpage/AdminSupport.jsx','Admin users only')
 ))
 Add (PageBreak)
 
@@ -269,7 +276,7 @@ booking-portal/
     pages/                  One file per route
     components/             Reusable building blocks
     hooks/                  Custom hooks (data + shared logic)
-    context/                React context (apartments cache)
+    context/                React context (apartments and admin portal state)
     services/               Thin wrappers around backend endpoints
     lib/                    Pure helpers (format, adapters, filters)
     data/                   Hard-coded sample data
@@ -300,7 +307,7 @@ Add (Heading 'ProtectedRoute' 2)
 Add (Para 'Wraps a page that requires login. It checks the JWT token in localStorage. If there is no token, it sends the user to /login. If allowedRoles is set (for example ["admin"]) and the role does not match, it sends them to /apartments instead.')
 
 Add (Heading 'PublicOnlyRoute' 2)
-Add (Para 'Wraps the Login and Register pages. If the user is already logged in, they are redirected to /apartments so they do not log in twice.')
+Add (Para 'Wraps the Login and Register pages. If the user is already logged in, regular users are redirected to /apartments and admins are redirected to /admin so they do not log in twice.')
 
 Add (Heading 'Adding a new route' 2)
 ResetNum
@@ -336,11 +343,11 @@ foreach ($n in @(
   'apiClient.js sends the fetch and unwraps the JSON envelope.',
   'Login.jsx extracts the token using getAccessToken (handles several payload shapes).',
   'useAuthToken.saveToken(token) stores it in localStorage.',
-  "navigate('/discover') sends the user to the home page.",
+  'Login.jsx reads the token role. Admins go to /admin; regular users go to /discover.',
   'On every later request, apiClient.js automatically attaches the Authorization header.'
 )) { Add (NumItem $n) }
 
-Add (Callout 'Where to change auth behavior' 'Want to redirect to /dashboard instead of /discover after login? Edit Login.jsx, in the handleLogin function. Want to add a third role like "host"? Edit useUserRole.js and any ProtectedRoute that uses allowedRoles.')
+Add (Callout 'Where to change auth behavior' 'Want regular users to redirect to /dashboard instead of /discover after login? Edit the navigate(role === "admin" ? "/admin" : "/discover") line in Login.jsx. Want to add a third role like "host"? Edit useUserRole.js and any ProtectedRoute that uses allowedRoles.')
 Add (PageBreak)
 
 # 8. API layer
@@ -364,6 +371,7 @@ Add (BuildTable @('File','Endpoints it wraps') @(
   ,@('src/services/propertiesApi.js','GET /properties, GET /properties/:id')
   ,@('src/services/bookingsApi.js','GET /users/me/bookings or /admin/bookings, POST /bookings, POST /bookings/:id/cancel, GET /bookings/:id')
   ,@('src/services/paymentsApi.js','POST /payments/initiate')
+  ,@('src/services/adminApi.js','GET/PATCH admin users, GET admin properties/bookings/tickets, ticket replies/status, permissions, config, audit logs')
 ))
 
 Add (Heading 'Adding a new endpoint' 2)
@@ -409,13 +417,16 @@ Add (Heading 'Why hooks exist here' 2)
 Add (Para 'Hooks are reusable functions that encapsulate state and side effects (network calls, localStorage access). Pages use hooks to keep their JSX focused on layout. If two pages need the same data, they call the same hook.')
 
 Add (BuildTable @('Hook','What it returns / does') @(
-  ,@('useAuthToken()','{ token, isAuthenticated, role, saveToken, clearToken, getAuthHeaders }')
+  ,@('useAuthToken()','{ token, isAuthenticated, role, saveToken, clearToken }. The token is saved in localStorage as access_token.')
   ,@('useUserRole()','{ role, isAdmin } - convenience selector built on the JWT.')
   ,@('useApartments()','{ apartments, getApartmentById, filterApartments } from the static catalog context.')
   ,@('useApartmentResource(id)','{ apartment, isLoading, error } - tries the static catalog first, falls back to the API.')
   ,@('useProperties(params)','{ properties, isLoading, error } - paginated list from the backend, normalized.')
   ,@('useBookings(params)','{ bookings, isLoading, isCancelling, error, successMessage, reloadBookings, cancelBookingById, confirmAndCancelBooking }')
   ,@('useProfile()','User profile, notifications, two-factor setup, plus saveProfile/changePassword/...')
+  ,@('useAdminUsers()','Admin user list, search/filter state, role changes, and active/inactive toggles.')
+  ,@('useAdminPortal()','Shared admin portal state: sidebar, permission matrix, role counts, and audit-log export.')
+  ,@('useAdminTickets()','Admin ticket queue, selected ticket, replies, and ticket status updates. Must be inside AdminTicketProvider.')
 ))
 
 Add (Heading 'Context: ApartmentsContext' 2)
@@ -425,6 +436,9 @@ foreach ($b in @(
   'src/context/ApartmentsContext.jsx: the <ApartmentsProvider> component that wraps the app and computes the value.',
   'src/hooks/useApartments.js: the consumer hook with a friendly error if the provider is missing.'
 )) { Add (Bullet $b) }
+
+Add (Heading 'Context: AdminPortalContext' 2)
+Add (Para 'Admin portal state is shared through src/context/AdminPortalProvider.jsx and consumed with src/hooks/useAdminPortal.js. It owns sidebar collapse state, permission matrix loading/saving, role user counts, and audit-log export. Admin support tickets use their own smaller provider: src/components/adminpage/AdminTicketProvider.jsx.')
 Add (Callout 'When to add a new context' 'Add a context only when many unrelated components need the same value (for example a currency selector, a feature flag, or a logged-in user). If only two components share data, plain props are simpler.')
 Add (PageBreak)
 
@@ -495,7 +509,7 @@ $pages = @(
     Route='/login'
     Summary='Email and password form. Saves the JWT token via useAuthToken.saveToken.'
     Changes=@(
-      "Change the post-login redirect: navigate('/discover') call.",
+      'Change the post-login redirect: the navigate(role === "admin" ? "/admin" : "/discover") line.',
       'Change marketing image / copy on the left panel: top of Login.jsx.',
       'Reusable inputs: src/components/auth/AuthTextField.jsx and PasswordField.jsx.'
     )
@@ -565,6 +579,76 @@ $pages = @(
     Route='/support'
     Summary='Static help page with four topic cards.'
     Changes=@('All content is hard-coded in Support.jsx; edit directly.')
+  },
+  @{
+    Title='Admin Dashboard (src/components/adminpage/AdminDashboard.jsx)'
+    Route='/admin'
+    Summary='Admin landing page. Loads totals from admin users, properties, bookings, and tickets endpoints.'
+    Changes=@(
+      'Change stat card layout: StatCard inside AdminDashboard.jsx.',
+      'Change which totals load: Promise.all block calling listAdminUsers/listAdminProperties/listAdminBookings/listAdminTickets.',
+      'Change quick links: Quick actions section inside AdminDashboard.jsx.'
+    )
+  },
+  @{
+    Title='Admin Users (src/components/adminpage/AdminUsers.jsx)'
+    Route='/admin/users'
+    Summary='User management table with search, role filter, role update, and active/inactive toggle. Data logic lives in useAdminUsers.js.'
+    Changes=@(
+      'Change API behavior: src/hooks/useAdminUsers.js and src/services/adminApi.js.',
+      'Change table columns or action buttons: AdminUsers.jsx.',
+      'Change roles shown in selectors: role options inside AdminUsers.jsx and role constants in src/lib/adminRoles.js.'
+    )
+  },
+  @{
+    Title='Admin Properties (src/components/adminpage/AdminProperties.jsx)'
+    Route='/admin/properties'
+    Summary='Admin listing table for published, draft, and archived properties. It currently reads from /admin/properties.'
+    Changes=@(
+      'Change status filters: status <select> in AdminProperties.jsx.',
+      'Change which property fields display: table body in AdminProperties.jsx.',
+      'Add create/edit/delete actions: add service functions in adminApi.js, then call them from AdminProperties.jsx.'
+    )
+  },
+  @{
+    Title='Admin Bookings (src/components/adminpage/AdminBooking.jsx)'
+    Route='/admin/bookings'
+    Summary='System-wide booking table for admins. It reads from /admin/bookings and links each row to /reservations/:id.'
+    Changes=@(
+      'Change filters: status <select> in AdminBooking.jsx.',
+      'Change date/status display: src/lib/bookingAdapter.js.',
+      'Add admin booking actions: create service functions in adminApi.js first, then wire buttons here.'
+    )
+  },
+  @{
+    Title='Admin Content (src/components/adminpage/AdminContent.jsx)'
+    Route='/admin/content'
+    Summary='Content and listing editor-style screen. It is partly connected through admin config APIs, but some rich editor interactions are still UI placeholders.'
+    Changes=@(
+      'Change editor layout or copy fields: AdminContent.jsx.',
+      'Persist global variables: getAdminSiteConfig/updateAdminSiteConfig in adminApi.js.',
+      'Add real page publishing: confirm backend endpoint first, then add a service wrapper.'
+    )
+  },
+  @{
+    Title='Admin Security (src/components/adminpage/AdminSettingss.jsx)'
+    Route='/admin/security'
+    Summary='Permission matrix for admin roles. State and save/reset logic are provided by AdminPortalProvider.'
+    Changes=@(
+      'Change role cards or permission rows: AdminSettingss.jsx.',
+      'Change default fallback modules: src/lib/adminRoles.js.',
+      'Change loading/saving behavior: src/context/AdminPortalProvider.jsx.'
+    )
+  },
+  @{
+    Title='Admin Support (src/components/adminpage/AdminSupport.jsx)'
+    Route='/admin/support'
+    Summary='Three-column ticket workspace: ticket list, conversation, and user context. Data comes through AdminTicketProvider and admin ticket endpoints.'
+    Changes=@(
+      'Change ticket list UI: TicketListPanel in AdminSupport.jsx.',
+      'Change conversation UI: ConversationPanel and MessageBubble in AdminSupport.jsx.',
+      'Change reply/status API behavior: AdminTicketProvider.jsx and adminApi.js.'
+    )
   }
 )
 
@@ -603,7 +687,8 @@ foreach ($b in @(
   'components/dashboard: DashboardHeader, StatsGrid, UpcomingReservations, RecentTransactions.',
   'components/apartment-details: header, gallery, amenities, details section, reviews, location, reservation panel.',
   'components/discover: DiscoverHero, FeaturedListings, NeighborhoodSpotlight, SiteFooter.',
-  'components/profile: PersonalInfoPanel, SettingsPanel (which exports SecuritySettingsPanel and NotificationsPanel), ProfileSummary.'
+  'components/profile: PersonalInfoPanel, SettingsPanel (which exports SecuritySettingsPanel and NotificationsPanel), ProfileSummary.',
+  'components/adminpage: AdminLayout plus each admin section page. These are grouped here instead of src/pages because the admin portal is its own mini-application.'
 )) { Add (Bullet $b) }
 
 Add (Callout 'How to choose where a component lives' 'If the component is used by only one feature, put it inside that feature folder. If two or more unrelated features use it, move it to src/components/ directly. StatusMessage and LoadingScreen earned a top-level spot because four pages share them.')
@@ -675,7 +760,26 @@ $recipes = @(
       'Make sure useProfile.saveProfile passes it through (it already forwards anything you give it).'
   )},
   @{ Title='Change the post-login redirect'; Steps=@(
-      "Edit navigate('/discover') inside handleLogin in src/pages/Login.jsx."
+      'Edit the navigate(role === "admin" ? "/admin" : "/discover") line inside handleLogin in src/pages/Login.jsx.'
+  )},
+  @{ Title='Add a property from the backend'; Steps=@(
+      'Log in as an admin and copy a valid JWT token from localStorage or from the login response.',
+      'In Postman, send POST https://sanaps.mooo.com/api/v1/properties with Authorization: Bearer <token>.',
+      'Include a JSON body with title, description, neighborhood, address, latitude, longitude, price_per_night, bedrooms, bathrooms, max_guests, amenities, images, and status.',
+      'If the new property is draft, publish it with PATCH /properties/:id and body { "status": "published" }.',
+      'Refresh /apartments in the app. Public listings only show published properties returned by GET /properties.'
+  )},
+  @{ Title='Delete or archive a property'; Steps=@(
+      'Prefer archiving over deleting if the backend supports it: PATCH /properties/:id with { "status": "archived" }.',
+      'If a DELETE endpoint exists in swagger.yaml, add a function to src/services/adminApi.js first.',
+      'After the backend confirms the change, refresh /admin/properties and /apartments.'
+  )},
+  @{ Title='Add a new admin portal page'; Steps=@(
+      'Create a component under src/components/adminpage/, for example AdminReports.jsx.',
+      'Import it in src/routes/AppRouter.jsx under the admin imports.',
+      'Add a nested route inside path="/admin", for example <Route path="reports" element={<AdminReports />} />.',
+      'Add a sidebar link in the nav array at the top of AdminLayout.jsx.',
+      'If it needs shared admin state, put that state in AdminPortalProvider or make a smaller feature provider.'
   )}
 )
 
@@ -686,8 +790,39 @@ foreach ($r in $recipes) {
 }
 Add (PageBreak)
 
-# 15. Glossary
-Add (Heading '15. Glossary for absolute beginners' 1)
+# 15. Backend coverage
+Add (Heading '15. Backend coverage: what is connected and what is still static' 1)
+Add (Para 'This section is a truth table for the current implementation. It helps you avoid chasing a backend bug when a screen is still intentionally static, and it helps you know which file to open when you want to connect the next feature.')
+
+Add (Heading 'Connected to the backend today' 2)
+Add (BuildTable @('Feature','Files to inspect','Endpoint family') @(
+  ,@('Login / register / JWT role redirect','Login.jsx, Register.jsx, useAuthToken.js, authApi.js','/auth/login, /auth/register')
+  ,@('Public properties list and property details','Neighborhoods.jsx, ApartmentDetails.jsx, useProperties.js, useApartmentResource.js, propertiesApi.js, propertyAdapter.js','/properties, /properties/:id')
+  ,@('Create booking and cancel booking','Booking.jsx, useBookings.js, bookingsApi.js, bookingAdapter.js','/bookings, /bookings/:id/cancel')
+  ,@('User dashboard and booking history','Dashboard.jsx, Reservations.jsx, ReservationDetails.jsx, useBookings.js','/users/me/bookings or /admin/bookings')
+  ,@('Payment initiation','Payment.jsx, paymentsApi.js','/payments/initiate')
+  ,@('Profile, password, 2FA, notifications','Profile.jsx, useProfile.js, usersApi.js, authApi.js','/users/me, /users/me/password, /auth/2fa/*')
+  ,@('Admin dashboard totals','AdminDashboard.jsx, adminApi.js','/admin/users, /admin/properties, /admin/bookings, /admin/tickets')
+  ,@('Admin users','AdminUsers.jsx, useAdminUsers.js, adminApi.js','/admin/users, /admin/users/:id/role, /admin/users/:id/status')
+  ,@('Admin properties and bookings','AdminProperties.jsx, AdminBooking.jsx, adminApi.js','/admin/properties, /admin/bookings')
+  ,@('Admin support tickets','AdminSupport.jsx, AdminTicketProvider.jsx, useAdminTickets.js, adminApi.js','/admin/tickets, /admin/tickets/:id/reply, /admin/tickets/:id/status')
+  ,@('Admin permissions and audit logs','AdminSettingss.jsx, AdminPortalProvider.jsx, adminRoles.js, adminApi.js','/admin/permissions, /admin/audit-logs')
+))
+
+Add (Heading 'Still static or partly placeholder' 2)
+Add (BuildTable @('Area','Current state','How to make it real later') @(
+  ,@('Discover featured cards','Uses discoverContent.js and selected property/card data for the marketing page.','Replace featuredApartments with useProperties({ per_page: 3 }) when you want it fully live.')
+  ,@('Saved places','Saved.jsx still uses a local savedPlaces array.','Add saved/favorites endpoints to a service, then create useSavedPlaces().')
+  ,@('Support public page','Support.jsx is a static help page.','Add a ticket creation endpoint and form when backend supports public support requests.')
+  ,@('Admin content editor rich editing','Some content editor controls are UI-first.','Connect every button to confirmed /admin/config or content endpoints before relying on it.')
+  ,@('Property images','Backend properties may return images: []; the UI uses FALLBACK_PROPERTY_IMAGE when no image is available.','Upload real image URLs from admin property creation or add an image upload endpoint.')
+))
+
+Add (Callout 'How to decide the next API integration' 'Follow this order: identify the screen, find its page/component, create or extend the service function, wrap it in a hook if the screen needs loading/error state, normalize the data in src/lib/, then pass it into reusable components as props.')
+Add (PageBreak)
+
+# 16. Glossary
+Add (Heading '16. Glossary for absolute beginners' 1)
 Add (BuildTable @('Term','Plain-language definition') @(
   ,@('Component','A reusable piece of UI written as a JavaScript function that returns JSX.')
   ,@('JSX','JavaScript that contains HTML-like tags. Babel/Vite compiles it to plain function calls.')
